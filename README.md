@@ -6,9 +6,16 @@ Launching Espresso creates a system tray icon.  Click the icon to inhibit power 
 
 ## Dependencies
 
-Espresso works only on *nix (for now) and requires
+### Linux
+
+- Python 3
 - PySide **or** PyQt4
 - dbus-python
+
+### Windows 7
+
+- [Python 3](http://www.python.org/getit/)
+- [PySide](https://qt-project.org/wiki/PySide_Binaries_Windows) **or** [PyQt4](http://www.riverbankcomputing.com/software/pyqt/download)
 
 ## Motivation
 
