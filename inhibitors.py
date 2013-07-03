@@ -6,14 +6,38 @@ Espresso is a simple app that sits in the system tray and keeps the computer awa
 Espresso is freely available under the terms of the GNU Public License, version 3.  The license appears in GPLv3.txt.
 '''
 
-# This file contains an Inhibitor interface and Inhibitor implementations for various platforms
+# This file contains a SleepInhibitor interface and implementations for various platforms.
+# Implementations need only implement the methods marked with the `@abstractmethod` decorator.
 
 from abc import ABCMeta, abstractmethod
 
 
-class Inhibitor(metaclass=ABCMeta):
+'''
+A SleepInhibitor implementation can be used to keep a machine awake in one of two ways.
+
+Explicitly:
+	inhibitor = ConcreteInhibitor()
+	inhibitor.Inhibit()
+	# AWAKE
+	inhibitor.UnInhibit() # or inhibitor.Toggle()
+	
+In a `with` statement:
+	with ConcreteInhibitor() as inhibitor:
+		# AWAKE
+'''
+class SleepInhibitor(metaclass=ABCMeta):
 	def __init__(self):
-		self.inhibited = None # Children: set to None when not inhibited
+		self.inhibited = None # Attention Children: set to None when not inhibited
+	
+	def __del__(self):
+		self.UnInhibit()
+		
+	def __enter__(self):
+		self.Inhibit()
+		return self
+	
+	def __exit__(self, type, value, traceback):
+		self.UnInhibit()
 	
 	@property
 	def Inhibited(self):
@@ -33,22 +57,22 @@ class Inhibitor(metaclass=ABCMeta):
 	def UnInhibit(self):
 		pass
 
-class DBusInhibitor(Inhibitor):
+class DBusInhibitor(SleepInhibitor):
 	def __init__(self):
 		import dbus
-		Inhibitor.__init__(self)
+		SleepInhibitor.__init__(self)
 		self.pm = dbus.SessionBus().get_object("org.freedesktop.PowerManagement", "/org/freedesktop/PowerManagement/Inhibit")
 		
 	def Inhibit(self):
-		if not Inhibited:
+		if not self.Inhibited:
 			self.inhibited = self.pm.Inhibit("Espresso", "Inhibited by user")
 	
 	def UnInhibit(self):
-		if Inhibited:
+		if self.Inhibited:
 			self.pm.UnInhibit(self.inhibited)
 			self.inhibited = None
 
-class Win7Inhibitor(Inhibitor):
+class Win7Inhibitor(SleepInhibitor):
 	# _POWER_REQUEST_TYPE enum from WinNT.h
 	(
 	PowerRequestDisplayRequired,
@@ -60,7 +84,7 @@ class Win7Inhibitor(Inhibitor):
 	def __init__(self):
 		global ctypes
 		import ctypes
-		Inhibitor.__init__(self)
+		SleepInhibitor.__init__(self)
 		self.request = ctypes.windll.kernel32.PowerCreateRequest(None) # todo: reason
 	
 	def Inhibit(self):

@@ -13,20 +13,11 @@ try:
 except ImportError:
 	from PyQt4 import QtCore, QtGui, QtSvg
 
-import platform
-if platform.system() == "Linux":
-	from inhibitor import DBusInhibitor as Inhibitor
-elif platform.system() == "Windows" and sys.getwindowsversion().major >= 6 and sys.getwindowsversion().minor >= 1:
-	from inhibitor import Win7Inhibitor as Inhibitor
-else:
-	print("Platform not supported!")
-	sys.exit(1)
-
 
 class TrayIcon(QtGui.QSystemTrayIcon):
-	def __init__(self):
+	def __init__(self, inhibitor):
 		QtGui.QSystemTrayIcon.__init__(self)
-		self.inhibitor = Inhibitor()
+		self.inhibitor = inhibitor
 		self.empty = QtGui.QIcon(os.path.join(os.path.dirname(__file__), "Empty_Cup.svg"))
 		self.full = QtGui.QIcon(os.path.join(os.path.dirname(__file__), "Full_Cup.svg"))
 		self.setIcon(self.empty)
@@ -48,10 +39,19 @@ class TrayIcon(QtGui.QSystemTrayIcon):
 
 
 if __name__ == "__main__":
+	import platform
+	if platform.system() == "Linux":
+		from inhibitors import DBusInhibitor as SleepInhibitor
+	elif platform.system() == "Windows" and sys.getwindowsversion().major >= 6 and sys.getwindowsversion().minor >= 1:
+		from inhibitors import Win7Inhibitor as SleepInhibitor
+	else:
+		print("Platform not supported!")
+		sys.exit(1)
+	
 	app = QtGui.QApplication(sys.argv)
 	if not QtGui.QSystemTrayIcon.isSystemTrayAvailable():
 		QtGui.QMessageBox.critical(None, QtCore.QObject.tr(app, "Espresso"), QtCore.QObject.tr(app, "No system tray available"))
 		sys.exit(1)
-	icon = TrayIcon();
+	icon = TrayIcon(SleepInhibitor());
 	icon.show()
 	sys.exit(app.exec_())
