@@ -2,7 +2,7 @@
 
 Espresso keeps your computer awake from the system tray.
 
-Launching Espresso creates a system tray icon.  Click the icon to inhibit power management and keep your computer awake.  Click it again to return to normal.  Middle-click to quit.
+Launching Espresso creates a system tray (aka notification area) icon.  Click the icon to inhibit power management and keep your computer awake.  Click it again to return to normal.  Right-click to inhibit for a specific amount of time.  Middle-click to quit.
 
 ## Dependencies
 

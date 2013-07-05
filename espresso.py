@@ -8,6 +8,7 @@ Espresso is freely available under the terms of the GNU Public License, version 
 
 import os
 import sys
+from threading import Timer
 try:
 	from PySide import QtCore, QtGui, QtSvg
 except ImportError:
@@ -15,28 +16,62 @@ except ImportError:
 
 
 class TrayIcon(QtGui.QSystemTrayIcon):
-	def __init__(self, inhibitor):
-		QtGui.QSystemTrayIcon.__init__(self)
-		self.inhibitor = inhibitor
-		self.empty = QtGui.QIcon(os.path.join(os.path.dirname(__file__), "Empty_Cup.svg"))
-		self.full = QtGui.QIcon(os.path.join(os.path.dirname(__file__), "Full_Cup.svg"))
-		self.setIcon(self.empty)
-		self.setToolTip("Espresso - click to toggle, middle-click to quit")
-		self.activated.connect(self.Activate)
-
-	def Activate(self, reason):
-		if reason == QtGui.QSystemTrayIcon.Trigger:
-			self.inhibitor.Toggle()
-			if self.inhibitor.Inhibited:
-				self.setIcon(self.full)
-			else:
-				self.setIcon(self.empty)
+	def __init__(self, inhibitor, parent):
+		super().__init__(parent)
 		
-		if reason == QtGui.QSystemTrayIcon.MiddleClick:
-			self.inhibitor.UnInhibit()
-			self.deleteLater() # prevents PyQt4 segfault
-			QtGui.QApplication.quit()
+		self.ICON_EMPTY_CUP     = QtGui.QIcon(os.path.join(os.path.dirname(__file__), "Empty_Cup.svg"))
+		self.ICON_FULL_CUP      = QtGui.QIcon(os.path.join(os.path.dirname(__file__), "Full_Cup.svg"))
+		self.ICON_CRYSTAL_CLOCK = QtGui.QIcon(os.path.join(os.path.dirname(__file__), "Crystal_Clock.svg"))
+		self.ICON_CLOSE         = self.parent().style().standardIcon(QtGui.QStyle.SP_DialogCloseButton)
+		
+		self.inhibitor = inhibitor
+		self.timer = Timer(0, self.Event) # default timer never runs
+		self.UnInhibit()
+		self.setToolTip("Espresso - click to toggle, middle-click to quit")
+		self.setContextMenu(self.BuildMenu())
+		self.activated.connect(self.Event)
 
+	def BuildMenu(self):
+		menu = QtGui.QMenu()
+		
+		inhibit_menu = menu.addMenu(self.ICON_CRYSTAL_CLOCK, "Inhibit for")
+		for minutes in [1, 5, 10, 15, 30]:
+			suffix = "s" if minutes > 1 else ""
+			inhibit_menu.addAction(str(minutes)+" minute"+suffix).triggered.connect(lambda m = minutes : self.Inhibit(m))
+		for hours in [1, 2, 5]:
+			suffix = "s" if hours > 1 else ""
+			inhibit_menu.addAction(str(hours)+" hour"+suffix).triggered.connect(lambda m = hours*60 : self.Inhibit(m))
+		inhibit_menu.addAction("Indefinitely").triggered.connect(self.Inhibit)
+		
+		menu.addAction(self.ICON_CLOSE, "Quit").triggered.connect(self.Quit)
+		return menu
+
+	def Event(self, reason):
+		if reason == QtGui.QSystemTrayIcon.Trigger:
+			if not self.inhibitor.Inhibited:
+				self.Inhibit()
+			else:
+				self.UnInhibit()
+		elif reason == QtGui.QSystemTrayIcon.MiddleClick:
+			self.Quit()
+
+	def Inhibit(self, timeout_minutes = None):
+		self.timer.cancel()
+		if timeout_minutes is not None:
+			self.timer = Timer(timeout_minutes*60, self.UnInhibit)
+			self.timer.start()
+		self.setIcon(self.ICON_FULL_CUP)
+		self.inhibitor.Inhibit()
+		
+	def UnInhibit(self):
+		self.timer.cancel()
+		self.setIcon(self.ICON_EMPTY_CUP)
+		self.inhibitor.UnInhibit()
+		
+	def Quit(self):
+		self.UnInhibit()
+		self.deleteLater() # prevents PyQt4 segfault
+		self.parent().quit()
 
 if __name__ == "__main__":
 	import platform
@@ -45,13 +80,12 @@ if __name__ == "__main__":
 	elif platform.system() == "Windows" and sys.getwindowsversion().major >= 6 and sys.getwindowsversion().minor >= 1:
 		from inhibitors import Win7Inhibitor as SleepInhibitor
 	else:
-		print("Platform not supported!")
-		sys.exit(1)
+		raise NotImplementedError("Platform not supported")
 	
 	app = QtGui.QApplication(sys.argv)
 	if not QtGui.QSystemTrayIcon.isSystemTrayAvailable():
 		QtGui.QMessageBox.critical(None, QtCore.QObject.tr(app, "Espresso"), QtCore.QObject.tr(app, "No system tray available"))
 		sys.exit(1)
-	icon = TrayIcon(SleepInhibitor());
+	icon = TrayIcon(SleepInhibitor(), app);
 	icon.show()
 	sys.exit(app.exec_())

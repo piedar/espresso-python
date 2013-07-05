@@ -1,5 +1,6 @@
 "Full_Cup.svg" and "Empty_Cup.svg" icons Copyright (C) 2009 Tommy Brunn
 (http://www.blastfromthepast.se/blabbermouth).
+"Crystal_Clock.svg" by Everaldo Coelho and YellowIcon [LGPL], via Wikimedia Commons.
 
 The artwork is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
