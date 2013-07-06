@@ -1,31 +1,39 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''
 Copyright 2013 Benn Snyder
-Espresso is a simple app that sits in the system tray and keeps the computer awake when activated.
+Espresso keeps your computer awake from the system tray.
 Espresso is freely available under the terms of the GNU Public License, version 3.  The license appears in GPLv3.txt.
 '''
-
-# This file contains a SleepInhibitor interface and implementations for various platforms.
-# Implementations need only implement the methods marked with the `@abstractmethod` decorator.
 
 from abc import ABCMeta, abstractmethod
 
 
-'''
-A SleepInhibitor implementation can be used to keep a machine awake in one of two ways.
+def AutoSelect():
+	import platform
+	if platform.system() == "Linux":
+		return DBusInhibitor()
+	elif platform.system() == "Windows" and sys.getwindowsversion().major >= 6 and sys.getwindowsversion().minor >= 1:
+		return Win7Inhibitor()
+	else:
+		raise NotImplementedError("Platform not supported")
 
-Explicitly:
-	inhibitor = ConcreteInhibitor()
-	inhibitor.Inhibit()
-	# AWAKE
-	inhibitor.UnInhibit() # or inhibitor.Toggle()
-	
-In a `with` statement:
-	with ConcreteInhibitor() as inhibitor:
-		# AWAKE
-'''
+# Implementations need only implement the methods marked with the `@abstractmethod` decorator and make sure `self.inhibited` is `None` only when not inhibited.
 class SleepInhibitor(metaclass=ABCMeta):
+	"""
+	A SleepInhibitor implementation can be used to keep a machine awake in one of two ways.
+	
+	Explicitly:
+		inhibitor = ConcreteInhibitor()
+		inhibitor.Inhibit()
+		# AWAKE
+		inhibitor.UnInhibit() # or inhibitor.Toggle()
+		
+	In a `with` statement:
+		with ConcreteInhibitor() as inhibitor:
+			# AWAKE
+	"""
+	
 	def __init__(self):
 		self.inhibited = None # Attention Children: set to None when not inhibited
 	
@@ -59,8 +67,8 @@ class SleepInhibitor(metaclass=ABCMeta):
 
 class DBusInhibitor(SleepInhibitor):
 	def __init__(self):
+		super().__init__()
 		import dbus
-		SleepInhibitor.__init__(self)
 		self.pm = dbus.SessionBus().get_object("org.freedesktop.PowerManagement", "/org/freedesktop/PowerManagement/Inhibit")
 		
 	def Inhibit(self):
@@ -82,18 +90,18 @@ class Win7Inhibitor(SleepInhibitor):
 	) = map(int, range(4))
 	
 	def __init__(self):
+		super().__init__()
 		global ctypes
 		import ctypes
-		SleepInhibitor.__init__(self)
 		self.request = ctypes.windll.kernel32.PowerCreateRequest(None) # todo: reason
 	
 	def Inhibit(self):
 		if not self.Inhibited:
 			result = ctypes.windll.kernel32.PowerSetRequest(self.request, self.PowerRequestSystemRequired)
-			if result != 0:
+			if result != 0: # yes, this function returns 0 on failure
 				self.inhibited = True
 			else:
-				print("Inhibit failed!")
+				raise OSError(result, "SetPowerRequest() failed")
 			
 	def UnInhibit(self):
 		if self.Inhibited:
@@ -101,4 +109,4 @@ class Win7Inhibitor(SleepInhibitor):
 			if result != 0:
 				self.inhibited = None
 			else:
-				print("UnInhibit failed!")
+				raise OSError(result, "PowerClearRequest() failed")

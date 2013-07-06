@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''
 Copyright 2013 Benn Snyder
-Espresso is a simple app that sits in the system tray and keeps the computer awake when activated.
+Espresso keeps your computer awake from the system tray.
 Espresso is freely available under the terms of the GNU Public License, version 3.  The license appears in GPLv3.txt.
 '''
 
@@ -73,19 +73,14 @@ class TrayIcon(QtGui.QSystemTrayIcon):
 		self.deleteLater() # prevents PyQt4 segfault
 		self.parent().quit()
 
+
 if __name__ == "__main__":
-	import platform
-	if platform.system() == "Linux":
-		from inhibitors import DBusInhibitor as SleepInhibitor
-	elif platform.system() == "Windows" and sys.getwindowsversion().major >= 6 and sys.getwindowsversion().minor >= 1:
-		from inhibitors import Win7Inhibitor as SleepInhibitor
-	else:
-		raise NotImplementedError("Platform not supported")
+	import inhibitors
 	
 	app = QtGui.QApplication(sys.argv)
 	if not QtGui.QSystemTrayIcon.isSystemTrayAvailable():
 		QtGui.QMessageBox.critical(None, QtCore.QObject.tr(app, "Espresso"), QtCore.QObject.tr(app, "No system tray available"))
 		sys.exit(1)
-	icon = TrayIcon(SleepInhibitor(), app);
+	icon = TrayIcon(inhibitors.AutoSelect(), app);
 	icon.show()
 	sys.exit(app.exec_())
