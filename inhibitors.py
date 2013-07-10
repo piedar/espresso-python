@@ -6,6 +6,8 @@ Espresso keeps your computer awake from the system tray.
 Espresso is freely available under the terms of the GNU Public License, version 3.  The license appears in GPLv3.txt.
 '''
 
+import sys
+import platform
 from abc import ABCMeta, abstractmethod
 
 
