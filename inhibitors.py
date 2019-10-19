@@ -15,8 +15,8 @@ def AutoSelect():
 	import platform
 	if platform.system() == "Linux":
 		return DBusInhibitor()
-	elif platform.system() == "Windows" and sys.getwindowsversion().major >= 6 and sys.getwindowsversion().minor >= 1:
-		return Win7Inhibitor()
+	elif platform.system() == "Windows" and sys.getwindowsversion().build >= 7601:
+		return WinInhibitor()
 	else:
 		raise NotImplementedError("Platform not supported")
 
@@ -82,7 +82,7 @@ class DBusInhibitor(SleepInhibitor):
 			self.pm.UnInhibit(self.inhibited)
 			self.inhibited = None
 
-class Win7Inhibitor(SleepInhibitor):
+class WinInhibitor(SleepInhibitor):
 	# _POWER_REQUEST_TYPE enum from WinNT.h
 	(
 	PowerRequestDisplayRequired,
