@@ -12,7 +12,6 @@ from abc import ABCMeta, abstractmethod
 
 
 def AutoSelect():
-	import platform
 	if platform.system() == "Linux":
 		return DBusInhibitor()
 	elif platform.system() == "Windows" and sys.getwindowsversion().build >= 7601:
